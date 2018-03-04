@@ -11,32 +11,34 @@ You can select match pattern list srouce, file or command arguments.
 
 ## USAGE
 ```
-#gopick [options1, option2 ...] pattern1 pattern2 ...
+#gopick [option1, option2 ...] pattern1 pattern2 ...
 
 [OPTIONS]
   -e string
-    	list file and in/out stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)
+    	set to list file and in/out stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)
   -el string
-    	list file encoding.(SJIS|EUCJP|ISO2022JP|UTF8)
+    	set to list file encoding.(SJIS|EUCJP|ISO2022JP|UTF8)
   -eo string
-    	output stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)
+    	set to output stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)
   -es string
-    	input stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)
-  -inv
-    	enable pattern unmatch(invert) line pick mode.
-    	when not use "-i", include pattern match line.
+    	set to input stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)
+  -i	pick lines at pattern unmatched.
+    	when not use "-i", pick lines at pattern matched.
   -l string
-    	match pattern list from list file and arguments.
+    	pick pattern list from file and arguments.
     	the list file contents is 1 pattern per line.
-    	when not use "-s", only command arguments.
+    	when not use "-l", only command arguments.
+  -r string
+    	pick range of target file line number.
+    	you must give next format "-r start:end".
+    	if start <= 0, pick start at first line.
+    	if end > file max line number or end <= 0, pick to last of line. (default "0:0")
   -regexp
-    	enable regexp pattern mode.
-    	when not use "-rgx", match contains string line.
+    	pick lines at regexp pattern matched.
+    	when not use "-regexp", pick lines at contains string.
   -s string
-    	filter target text file.
-  -ver
-    	show command version, and command exit.
-
+    	filter target file.
+  -v	show command version, and command exit.
 ```
 
 ## Examples
@@ -60,7 +62,7 @@ $ gopick -s target.txt -es SJIS Pattern1 Pattern2
 exclude pattern match lines
 ---------------------------
 ```
-$ gopick -s target.txt -inv Pattern1 Pattern2
+$ gopick -s target.txt -i Pattern1 Pattern2
 ```
 
 pick pattern from file and arguments

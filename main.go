@@ -12,17 +12,17 @@ import (
 )
 
 // command version
-const CMD_VERSION = "0.01"
+const CMD_VERSION = "0.02"
 
 // entry point function
 func main() {
 	var args CmdArgs
-	var picklist []string
-	var regexplist []*regexp.Regexp
+	var pickList []string
+	var rgxpList []*regexp.Regexp
 
 	// analyze command arguments
 	args.Parse()
-	exit, optErr := args.DoCheckOption()
+	exit, optErr := args.DoCheckOptions()
 	if exit {
 		if optErr != nil {
 			log.Fatalln(optErr.Error())
@@ -31,14 +31,14 @@ func main() {
 	}
 
 	// make pick list
-	picklist, listErr := MakePickList(args.listPath, args.listEncoding, args.picklist)
+	pickList, listErr := MakePickList(args.listPath, args.listEncoding, args.pickList)
 	if listErr != nil {
 		log.Fatalln(fmt.Sprintf("makelist file read error: %s", listErr.Error()))
 	}
 	if args.rgxpFlag {
 		// if use regexp pattern mode
 		var regexpErrMsgs []string
-		regexplist, regexpErrMsgs = MakePickRegexpList(picklist)
+		rgxpList, regexpErrMsgs = MakePickRegexpList(pickList)
 		for _, errMsg := range regexpErrMsgs {
 			log.Println(errMsg)
 		}
@@ -54,28 +54,48 @@ func main() {
 		}
 		defer srcFile.Close()
 
-		scanner = bufio.NewScanner(getTextReader(srcFile, args.inEncoding))
+		scanner = bufio.NewScanner(NewDecodeReader(srcFile, args.inEncoding))
 	} else {
 		// from stdin
-		scanner = bufio.NewScanner(getTextReader(os.Stdin, args.inEncoding))
+		scanner = bufio.NewScanner(NewDecodeReader(os.Stdin, args.inEncoding))
+	}
+
+	// skip for start of pick range
+	var lineNum int
+	for lineNum = 1; lineNum < args.line.start; lineNum++ {
+		scanner.Scan()
 	}
 
 	// do pick and output
-	writer := getTextWriter(os.Stdout, args.outEncoding)
+	writer := NewEncodeWriter(os.Stdout, args.outEncoding)
 	if args.rgxpFlag {
 		// match regexp pattern
 		for scanner.Scan() {
 			lineText := scanner.Text()
-			if judgePickRegexp(lineText, regexplist, args.invFlag) {
+			if JudgePickRegexp(lineText, rgxpList, args.invFlag) {
 				fmt.Fprintln(writer, lineText)
+			}
+			// check end of pick range
+			if args.line.end > 0 {
+				if lineNum >= args.line.end {
+					break
+				}
+				lineNum++
 			}
 		}
 	} else {
 		// contains string
 		for scanner.Scan() {
 			lineText := scanner.Text()
-			if judgePick(lineText, picklist, args.invFlag) {
+			if JudgePick(lineText, pickList, args.invFlag) {
 				fmt.Fprintln(writer, lineText)
+			}
+			// check end of pick range
+			if args.line.end > 0 {
+				if lineNum >= args.line.end {
+					break
+				}
+				lineNum++
 			}
 		}
 	}

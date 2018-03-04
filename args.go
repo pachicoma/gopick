@@ -4,6 +4,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"strconv"
+	"strings"
 )
 
 //********************************************************************
@@ -17,32 +19,45 @@ type CmdArgs struct {
 	verFlag      bool     "show version flag"
 	rgxpFlag     bool     "regexp mode flag"
 	length       int      "arguments  picklist length"
-	picklist     []string "picklist from arguments"
+	pickList     []string "pick list from arguments"
 	inEncoding   string   "input stream encoding"
 	outEncoding  string   "output stream encoding"
-	listEncoding string   "list file encoding"
+	listEncoding string   "pick list file encoding"
+	lineStr      string   "range of file line(raw)"
+	line         Range    "range of file line"
+}
+
+// Range start,end
+type Range struct {
+	start int
+	end   int
 }
 
 // command options description
 const (
-	OPT_DESC_S = `filter target text file.`
+	OPT_DESC_s = `filter target file.`
 
-	OPT_DESC_L = `match pattern list from list file and arguments.
+	OPT_DESC_l = `pick pattern list from file and arguments.
 the list file contents is 1 pattern per line.
-when not use "-s", only command arguments.`
+when not use "-l", only command arguments.`
 
-	OPT_DESC_REGEXP = `enable regexp pattern mode.
-when not use "-rgx", match contains string line.`
+	OPT_DESC_r = `pick range of target file line number.
+you must give next format "-r start:end".
+if start <= 0, pick start at first line.
+if end > file max line number or end <= 0, pick to last of line.`
 
-	OPT_DESC_I = `enable pattern unmatch(invert) line pick mode.
-when not use "-i", include pattern match line.`
+	OPT_DESC_regexp = `pick lines at regexp pattern matched.
+when not use "-regexp", pick lines at contains string.`
 
-	OPT_DESC_V = `show command version, and command exit.`
+	OPT_DESC_i = `pick lines at pattern unmatched.
+when not use "-i", pick lines at pattern matched.`
 
-	OPT_DESC_ES = `input stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)`
-	OPT_DESC_EO = `output stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)`
-	OPT_DESC_EL = `list file encoding.(SJIS|EUCJP|ISO2022JP|UTF8)`
-	OPT_DESC_E  = `list file and in/out stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)`
+	OPT_DESC_v = `show command version, and command exit.`
+
+	OPT_DESC_es = `set to input stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)`
+	OPT_DESC_eo = `set to output stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)`
+	OPT_DESC_el = `set to list file encoding.(SJIS|EUCJP|ISO2022JP|UTF8)`
+	OPT_DESC_e  = `set to list file and in/out stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)`
 )
 
 //********************************************************************
@@ -53,16 +68,17 @@ when not use "-i", include pattern match line.`
 // use flag package.
 func (args *CmdArgs) Parse() {
 	// options
-	flag.StringVar(&args.srcPath, "s", "", OPT_DESC_S)
-	flag.StringVar(&args.listPath, "l", "", OPT_DESC_L)
-	flag.StringVar(&args.inEncoding, "es", "", OPT_DESC_ES)
-	flag.StringVar(&args.outEncoding, "eo", "", OPT_DESC_EO)
-	flag.StringVar(&args.listEncoding, "el", "", OPT_DESC_EL)
+	flag.StringVar(&args.srcPath, "s", "", OPT_DESC_s)
+	flag.StringVar(&args.listPath, "l", "", OPT_DESC_l)
+	flag.StringVar(&args.inEncoding, "es", "", OPT_DESC_es)
+	flag.StringVar(&args.outEncoding, "eo", "", OPT_DESC_eo)
+	flag.StringVar(&args.listEncoding, "el", "", OPT_DESC_el)
+	flag.StringVar(&args.lineStr, "r", "0:0", OPT_DESC_r)
 	encoding := ""
-	flag.StringVar(&encoding, "e", "", OPT_DESC_E)
-	flag.BoolVar(&args.rgxpFlag, "regexp", false, OPT_DESC_REGEXP)
-	flag.BoolVar(&args.invFlag, "inv", false, OPT_DESC_I)
-	flag.BoolVar(&args.verFlag, "ver", false, OPT_DESC_V)
+	flag.StringVar(&encoding, "e", "", OPT_DESC_e)
+	flag.BoolVar(&args.rgxpFlag, "regexp", false, OPT_DESC_regexp)
+	flag.BoolVar(&args.invFlag, "i", false, OPT_DESC_i)
+	flag.BoolVar(&args.verFlag, "v", false, OPT_DESC_v)
 
 	// parse arguments
 	flag.Parse()
@@ -74,9 +90,55 @@ func (args *CmdArgs) Parse() {
 
 	// othrer arguments
 	args.length = flag.NArg()
-	args.picklist = flag.Args()
+	args.pickList = flag.Args()
 }
 
+// DoCheckOption is method of CmdArgs.
+// check command options.
+func (args *CmdArgs) DoCheckOptions() (bool, error) {
+
+	// show command
+	if args.verFlag {
+		fmt.Println(CMD_VERSION)
+		// exit command, no error
+		return true, nil
+	}
+
+	// set target range
+	var rangeErr error
+	lineNums := strings.Split(args.lineStr, ":")
+	if len(lineNums) != 2 {
+		return true, errors.New(fmt.Sprintf("give bad range format: '%s', you must give format 'start:end'", args.lineStr))
+	}
+	args.line.start, rangeErr = convertLineNumberToInt(lineNums[0], 0)
+	if rangeErr != nil {
+		return true, rangeErr
+	}
+	args.line.end, rangeErr = convertLineNumberToInt(lineNums[1], 0)
+	if rangeErr != nil {
+		return true, rangeErr
+	}
+	if args.line.end > 0 && args.line.start > args.line.end {
+		return true, errors.New(fmt.Sprintf("give bad range value: '%s', you must give value start < end", args.lineStr))
+	}
+
+	// check enable source file path
+	if args.srcPath != "" && !DoesExistPath(args.srcPath) {
+		return true, errors.New(fmt.Sprintf("source file not found :%s", args.srcPath))
+	}
+
+	// check enable list file path
+	if args.listPath != "" && !DoesExistPath(args.listPath) {
+		return true, errors.New(fmt.Sprintf("pick list file not found :%s", args.listPath))
+	}
+
+	// command proc continue
+	return false, nil
+}
+
+//********************************************************************
+// helper functions
+//********************************************************************
 // selectStr select from 3 strings if not "".
 // priority first > second > defval
 func selectStr(first, second, defval string) string {
@@ -91,29 +153,20 @@ func selectStr(first, second, defval string) string {
 	return selected
 }
 
-// DoCheckOption is method of CmdArgs.
-// check command options.
-func (args *CmdArgs) DoCheckOption() (bool, error) {
-
-	// show command
-	if args.verFlag {
-		fmt.Println(CMD_VERSION)
-		// exit command, no error
-		return true, nil
+// getRangeLineNumber return parse to string range of line number
+func convertLineNumberToInt(numStr string, min int) (int, error) {
+	var lineNum int
+	if numStr == "" {
+		lineNum = min
+	} else {
+		lineNum64, rangeErr := strconv.ParseInt(numStr, 10, 0)
+		if rangeErr != nil {
+			return min, errors.New(fmt.Sprintf("give bad value: '%s'", numStr))
+		}
+		lineNum = int(lineNum64)
+		if lineNum < min {
+			lineNum = min
+		}
 	}
-
-	// check enable source file path
-	if args.srcPath != "" && !doesExistPath(args.srcPath) {
-		// exit command, error happen
-		return true, errors.New(fmt.Sprintf("file not found :%s", args.srcPath))
-	}
-
-	// check enable list file path
-	if args.listPath != "" && !doesExistPath(args.listPath) {
-		// exit command, error happen
-		return true, errors.New(fmt.Sprintf("file not found :%s", args.listPath))
-	}
-
-	// command proc continue
-	return false, nil
+	return lineNum, nil
 }

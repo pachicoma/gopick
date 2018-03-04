@@ -10,57 +10,58 @@ import (
 // Make pick list functions
 //********************************************************************
 // MakePickList return simple string pick list, read from file.
-func MakePickList(path string, enc string, defaltlist []string) ([]string, error) {
+func MakePickList(path string, enc string, defaltPickList []string) ([]string, error) {
 	// return objects
-	picklist := make([]string, 0, len(defaltlist))
+	pickList := make([]string, 0, len(defaltPickList))
 
 	// make pick list
 	if path != "" {
 		var listErr error
-		picklist, listErr = readNotBlankLines(path, enc)
+		pickList, listErr = ReadNotBlankLines(path, enc)
 		if listErr != nil {
-			return picklist, listErr
+			return pickList, listErr
 		}
 	}
-	for _, pattern := range defaltlist {
-		picklist = append(picklist, pattern)
+	// append default pick list
+	for _, pattern := range defaltPickList {
+		pickList = append(pickList, pattern)
 	}
-	return picklist, nil
+	return pickList, nil
 }
 
 // MakePickRegexpList return regexp pattern pick list, read from file.
-func MakePickRegexpList(picklist []string) ([]*regexp.Regexp, []string) {
+func MakePickRegexpList(pickList []string) ([]*regexp.Regexp, []string) {
 	// return objects
-	regexplist := make([]*regexp.Regexp, 0, len(picklist))
-	errmsgs := make([]string, 0, len(picklist))
+	rgxpList := make([]*regexp.Regexp, 0, len(pickList))
+	errMsgs := make([]string, 0, len(pickList))
 
 	// make pick list
-	for _, pattern := range picklist {
+	for _, pattern := range pickList {
 		re, reErr := regexp.Compile(pattern)
 		if reErr != nil {
-			errmsgs = append(errmsgs, fmt.Sprintf("\"%s\" > %s", pattern, reErr.Error()))
+			errMsgs = append(errMsgs, fmt.Sprintf("\"%s\" > %s", pattern, reErr.Error()))
 		} else {
-			regexplist = append(regexplist, re)
+			rgxpList = append(rgxpList, re)
 		}
 	}
 
-	return regexplist, errmsgs
+	return rgxpList, errMsgs
 }
 
 //********************************************************************
 // Judge pick functions
 //********************************************************************
-// judgePick return pick or not pick judge result. (contains word mode)
+// JudgePick return pick or not pick judge result. (contains word mode)
 // when judged pick return true, else return false.
-func judgePick(text string, picklist []string, invertFlag bool) bool {
+func JudgePick(text string, pickList []string, invertFlag bool) bool {
 	// return judge result value
 	doesPick := false
 
 	// do judge
-	if len(picklist) == 0 {
+	if len(pickList) == 0 {
 		doesPick = true
 	} else {
-		for _, pattern := range picklist {
+		for _, pattern := range pickList {
 			if strings.Contains(text, pattern) {
 				doesPick = true
 				break
@@ -71,17 +72,17 @@ func judgePick(text string, picklist []string, invertFlag bool) bool {
 	return doesPick != invertFlag
 }
 
-// judgePickRegexp return pick or not pick judge result.(match regexp pattern mode)
+// JudgePickRegexp return pick or not pick judge result.(match regexp pattern mode)
 // when judged pick return true, else return false.
-func judgePickRegexp(text string, picklist []*regexp.Regexp, invertFlag bool) bool {
+func JudgePickRegexp(text string, pickList []*regexp.Regexp, invertFlag bool) bool {
 	// return judge result value
 	doesPick := false
 
 	// do judge
-	if len(picklist) == 0 {
+	if len(pickList) == 0 {
 		doesPick = true
 	} else {
-		for _, pattern := range picklist {
+		for _, pattern := range pickList {
 			if pattern.MatchString(text) {
 				doesPick = true
 				break

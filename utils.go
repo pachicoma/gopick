@@ -25,8 +25,8 @@ const (
 //********************************************************************
 // Charset encoding functions
 //********************************************************************
-// getTextReader return io.Reader object
-func getTextReader(inStream io.Reader, enc string) io.Reader {
+// NewDecodeReader return io.Reader object
+func NewDecodeReader(inStream io.Reader, enc string) io.Reader {
 	var reader io.Reader
 
 	encoding := getEncoding(enc)
@@ -39,8 +39,8 @@ func getTextReader(inStream io.Reader, enc string) io.Reader {
 	return reader
 }
 
-// getTextWriter return io.Writer object
-func getTextWriter(outStream io.Writer, enc string) io.Writer {
+// NewEncodeWriter return io.Writer object
+func NewEncodeWriter(outStream io.Writer, enc string) io.Writer {
 	var writer io.Writer
 
 	encoding := getEncoding(enc)
@@ -53,7 +53,7 @@ func getTextWriter(outStream io.Writer, enc string) io.Writer {
 	return writer
 }
 
-// getEncoding return encoding transformer object.
+// getEncoding return encoding object.
 func getEncoding(enc string) encoding.Encoding {
 	switch strings.ToUpper(enc) {
 	case ENC_SJIS, ENC_SHIFTJIS, ENC_SHIFT_JIS:
@@ -71,7 +71,7 @@ func getEncoding(enc string) encoding.Encoding {
 // File utility function
 //********************************************************************
 // readNotBlankLines convert text file lines to slice, only not blank line
-func readNotBlankLines(path string, enc string) ([]string, error) {
+func ReadNotBlankLines(path string, enc string) ([]string, error) {
 	// return slice object
 	lines := make([]string, 0, 0)
 
@@ -83,7 +83,7 @@ func readNotBlankLines(path string, enc string) ([]string, error) {
 	defer file.Close()
 
 	// read pick list
-	scanner := bufio.NewScanner(getTextReader(file, enc))
+	scanner := bufio.NewScanner(NewDecodeReader(file, enc))
 	for scanner.Scan() {
 		// skip blank line
 		line := strings.TrimSpace(scanner.Text())
@@ -103,7 +103,7 @@ func readNotBlankLines(path string, enc string) ([]string, error) {
 
 // doesExistPath check path exist.
 // when path exist return true, else return false.
-func doesExistPath(path string) bool {
+func DoesExistPath(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
