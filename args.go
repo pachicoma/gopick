@@ -161,7 +161,7 @@ func (args *CmdArgs) DoCheckOptions() (bool, error) {
 }
 
 //********************************************************************
-// helper functions
+// Helper functions
 //********************************************************************
 // selectStr select from 3 strings if not "".
 // priority first > second > defval
