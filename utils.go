@@ -6,14 +6,19 @@ import (
 	"os"
 	"strings"
 
+	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"
 )
 
 const (
 	ENC_SJIS      = "SJIS"
+	ENC_SHIFTJIS  = "SHIFTJIS"
+	ENC_SHIFT_JIS = "SHIFT_JIS"
 	ENC_UTF8      = "UTF8"
-	ENC_EUC       = "EUCJP"
+	ENC_UTF_8     = "UTF-8"
+	ENC_EUCJP     = "EUCJP"
+	ENC_EUC_JP    = "EUC-JP"
 	ENC_ISO2022JP = "ISO2022JP"
 )
 
@@ -26,7 +31,7 @@ func getTextReader(inStream io.Reader, enc string) io.Reader {
 
 	encoding := getEncoding(enc)
 	if encoding != nil {
-		reader = transform.NewReader(inStream, *encoding)
+		reader = transform.NewReader(inStream, encoding.NewDecoder())
 	} else {
 		reader = inStream
 	}
@@ -40,7 +45,7 @@ func getTextWriter(outStream io.Writer, enc string) io.Writer {
 
 	encoding := getEncoding(enc)
 	if encoding != nil {
-		writer = transform.NewWriter(outStream, *encoding)
+		writer = transform.NewWriter(outStream, encoding.NewEncoder())
 	} else {
 		writer = outStream
 	}
@@ -49,19 +54,17 @@ func getTextWriter(outStream io.Writer, enc string) io.Writer {
 }
 
 // getEncoding return encoding transformer object.
-func getEncoding(enc string) *transform.Transformer {
-	var encoding transform.Transformer
+func getEncoding(enc string) encoding.Encoding {
 	switch strings.ToUpper(enc) {
-	case ENC_SJIS:
-		encoding = japanese.ShiftJIS.NewEncoder()
-	case ENC_EUC:
-		encoding = japanese.EUCJP.NewEncoder()
+	case ENC_SJIS, ENC_SHIFTJIS, ENC_SHIFT_JIS:
+		return japanese.ShiftJIS
+	case ENC_EUCJP, ENC_EUC_JP:
+		return japanese.EUCJP
 	case ENC_ISO2022JP:
-		encoding = japanese.ISO2022JP.NewEncoder()
+		return japanese.ISO2022JP
 	default:
 		return nil
 	}
-	return &encoding
 }
 
 //********************************************************************

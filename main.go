@@ -78,5 +78,9 @@ func main() {
 				fmt.Fprintln(writer, lineText)
 			}
 		}
+		err := scanner.Err()
+		if err != nil {
+			log.Printf("scan err: %s", err.Error())
+		}
 	}
 }
