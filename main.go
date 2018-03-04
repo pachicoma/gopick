@@ -46,60 +46,67 @@ func main() {
 
 	// select input source
 	var scanner *bufio.Scanner
-	if args.srcPath != "" {
-		// from file
-		srcFile, srcErr := os.Open(args.srcPath)
-		if srcErr != nil {
-			log.Fatalln(srcErr.Error())
-		}
-		defer srcFile.Close()
-
-		scanner = bufio.NewScanner(NewDecodeReader(srcFile, args.inEncoding))
-	} else {
-		// from stdin
-		scanner = bufio.NewScanner(NewDecodeReader(os.Stdin, args.inEncoding))
-	}
-
-	// skip for start of pick range
-	var lineNum int
-	for lineNum = 1; lineNum < args.line.start; lineNum++ {
-		scanner.Scan()
-	}
-
-	// do pick and output
-	writer := NewEncodeWriter(os.Stdout, args.outEncoding)
-	if args.rgxpFlag {
-		// match regexp pattern
-		for scanner.Scan() {
-			lineText := scanner.Text()
-			if JudgePickRegexp(lineText, rgxpList, args.invFlag) {
-				fmt.Fprintln(writer, lineText)
+	writer := bufio.NewWriter(NewEncodeWriter(os.Stdout, args.outEncoding))
+	for _, srcFilePath := range args.srcFiles {
+		var srcFile *os.File
+		if srcFilePath != "" {
+			// from file
+			var srcErr error
+			srcFile, srcErr = os.Open(srcFilePath)
+			if srcErr != nil {
+				log.Fatalln(srcErr.Error())
 			}
-			// check end of pick range
-			if args.line.end > 0 {
-				if lineNum >= args.line.end {
-					break
+
+			scanner = bufio.NewScanner(NewDecodeReader(srcFile, args.inEncoding))
+		} else {
+			// from stdin
+			scanner = bufio.NewScanner(NewDecodeReader(os.Stdin, args.inEncoding))
+		}
+
+		// skip for start of pick range
+		var lineNum int
+		for lineNum = 1; lineNum < args.line.start; lineNum++ {
+			scanner.Scan()
+		}
+
+		// do pick and output
+		if args.rgxpFlag {
+			// match regexp pattern
+			for scanner.Scan() {
+				lineText := scanner.Text()
+				if JudgePickRegexp(lineText, rgxpList, args.invFlag) {
+					fmt.Fprintln(writer, lineText)
 				}
-				lineNum++
-			}
-		}
-	} else {
-		// contains string
-		for scanner.Scan() {
-			lineText := scanner.Text()
-			if JudgePick(lineText, pickList, args.invFlag) {
-				fmt.Fprintln(writer, lineText)
-			}
-			// check end of pick range
-			if args.line.end > 0 {
-				if lineNum >= args.line.end {
-					break
+				// check end of pick range
+				if args.line.end > 0 {
+					if lineNum >= args.line.end {
+						break
+					}
+					lineNum++
 				}
-				lineNum++
+			}
+		} else {
+			// contains string
+			for scanner.Scan() {
+				lineText := scanner.Text()
+				if JudgePick(lineText, pickList, args.invFlag) {
+					fmt.Fprintln(writer, lineText)
+				}
+				// check end of pick range
+				if args.line.end > 0 {
+					if lineNum >= args.line.end {
+						break
+					}
+					lineNum++
+				}
 			}
 		}
+		if err := scanner.Err(); err != nil {
+			log.Printf("taget file read error: %s", err.Error())
+		}
+
+		// close file
+		srcFile.Close()
 	}
-	if err := scanner.Err(); err != nil {
-		log.Printf("taget file read error: %s", err.Error())
-	}
+	writer.Flush()
 }

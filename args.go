@@ -4,6 +4,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"os/user"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -14,6 +16,7 @@ import (
 // CmdArgs is command arguments data object
 type CmdArgs struct {
 	srcPath      string   "srouce file path"
+	srcFiles     []string "srouce files path"
 	listPath     string   "list file path"
 	invFlag      bool     "pick judge invert flag"
 	verFlag      bool     "show version flag"
@@ -123,8 +126,29 @@ func (args *CmdArgs) DoCheckOptions() (bool, error) {
 	}
 
 	// check enable source file path
-	if args.srcPath != "" && !DoesExistPath(args.srcPath) {
-		return true, errors.New(fmt.Sprintf("source file not found :%s", args.srcPath))
+	if args.srcPath != "" {
+		args.srcPath = filepath.Clean(args.srcPath)
+		if args.srcPath[0] == '~' {
+			usr, errUsr := user.Current()
+			if errUsr != nil {
+				return true, errors.New(fmt.Sprintf("error of get user info: %s", errUsr.Error()))
+			}
+			args.srcPath = strings.Replace(args.srcPath, "~", usr.HomeDir, 1)
+		}
+		files, srcErr := filepath.Glob(args.srcPath)
+		if srcErr != nil {
+			return true, errors.New(fmt.Sprintf("give bad source file path :%s", args.srcPath))
+		}
+		args.srcFiles = make([]string, 0, 1)
+		for _, file := range files {
+			absPath, errPath := filepath.Abs(file)
+			if errPath != nil {
+				return true, errors.New(fmt.Sprintf("'%s': error of abs path: %s", file, errPath.Error()))
+			}
+			args.srcFiles = append(args.srcFiles, absPath)
+		}
+	} else {
+		args.srcFiles = []string{""}
 	}
 
 	// check enable list file path
