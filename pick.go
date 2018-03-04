@@ -9,10 +9,12 @@ import (
 //********************************************************************
 // Make pick list functions
 //********************************************************************
-// MakePickList is function.
-// make simple string pick list.
+// MakePickList return simple string pick list, read from file.
 func MakePickList(path string, enc string, defaltlist []string) ([]string, error) {
+	// return objects
 	picklist := make([]string, 0, len(defaltlist))
+
+	// make pick list
 	if path != "" {
 		var listErr error
 		picklist, listErr = readNotBlankLines(path, enc)
@@ -26,12 +28,13 @@ func MakePickList(path string, enc string, defaltlist []string) ([]string, error
 	return picklist, nil
 }
 
-// MakePickRegexpList is function.
-// make regexp pattern pick list.
+// MakePickRegexpList return regexp pattern pick list, read from file.
 func MakePickRegexpList(picklist []string) ([]*regexp.Regexp, []string) {
-
+	// return objects
 	regexplist := make([]*regexp.Regexp, 0, len(picklist))
 	errmsgs := make([]string, 0, len(picklist))
+
+	// make pick list
 	for _, pattern := range picklist {
 		re, reErr := regexp.Compile(pattern)
 		if reErr != nil {
@@ -47,8 +50,8 @@ func MakePickRegexpList(picklist []string) ([]*regexp.Regexp, []string) {
 //********************************************************************
 // Judge pick functions
 //********************************************************************
-// judgePick is function.
-// if judge pick return true, else return false (contains word)
+// judgePick return pick or not pick judge result. (contains word mode)
+// when judged pick return true, else return false.
 func judgePick(text string, picklist []string, invertFlag bool) bool {
 	// return judge result value
 	doesPick := false
@@ -68,8 +71,8 @@ func judgePick(text string, picklist []string, invertFlag bool) bool {
 	return doesPick != invertFlag
 }
 
-// judgePickRegexp is function.
-// if judge pick return true, else return false (match regexp pattern)
+// judgePickRegexp return pick or not pick judge result.(match regexp pattern mode)
+// when judged pick return true, else return false.
 func judgePickRegexp(text string, picklist []*regexp.Regexp, invertFlag bool) bool {
 	// return judge result value
 	doesPick := false

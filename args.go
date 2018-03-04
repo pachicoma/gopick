@@ -25,19 +25,24 @@ type CmdArgs struct {
 
 // command options description
 const (
-	OPT_DESC_SRC  = `filter target text file.`
-	OPT_DESC_LIST = `match pattern list from list file and arguments.
+	OPT_DESC_S = `filter target text file.`
+
+	OPT_DESC_L = `match pattern list from list file and arguments.
 the list file contents is 1 pattern per line.
 when not use "-s", only command arguments.`
+
 	OPT_DESC_REGEXP = `enable regexp pattern mode.
 when not use "-rgx", match contains string line.`
+
 	OPT_DESC_I = `enable pattern unmatch(invert) line pick mode.
 when not use "-i", include pattern match line.`
-	OPT_DESC_V       = `show command version, and command exit.`
-	OPT_DESC_ENCSRC  = `input stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)`
-	OPT_DESC_ENCOUT  = `output stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)`
-	OPT_DESC_ENCLIST = `list file encoding.(SJIS|EUCJP|ISO2022JP|UTF8)`
-	OPT_DESC_ENC     = `list file and in/out stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)`
+
+	OPT_DESC_V = `show command version, and command exit.`
+
+	OPT_DESC_ES = `input stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)`
+	OPT_DESC_EO = `output stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)`
+	OPT_DESC_EL = `list file encoding.(SJIS|EUCJP|ISO2022JP|UTF8)`
+	OPT_DESC_E  = `list file and in/out stream encoding.(SJIS|EUCJP|ISO2022JP|UTF8)`
 )
 
 //********************************************************************
@@ -48,16 +53,16 @@ when not use "-i", include pattern match line.`
 // use flag package.
 func (args *CmdArgs) Parse() {
 	// options
-	flag.StringVar(&args.srcPath, "src", "", OPT_DESC_SRC)
-	flag.StringVar(&args.listPath, "list", "", OPT_DESC_LIST)
-	flag.StringVar(&args.inEncoding, "encsrc", "", OPT_DESC_ENCSRC)
-	flag.StringVar(&args.outEncoding, "encout", "", OPT_DESC_ENCOUT)
-	flag.StringVar(&args.listEncoding, "enclist", "", OPT_DESC_ENCLIST)
+	flag.StringVar(&args.srcPath, "s", "", OPT_DESC_S)
+	flag.StringVar(&args.listPath, "l", "", OPT_DESC_L)
+	flag.StringVar(&args.inEncoding, "es", "", OPT_DESC_ES)
+	flag.StringVar(&args.outEncoding, "eo", "", OPT_DESC_EO)
+	flag.StringVar(&args.listEncoding, "el", "", OPT_DESC_EL)
 	encoding := ""
-	flag.StringVar(&encoding, "enc", "", OPT_DESC_ENC)
+	flag.StringVar(&encoding, "e", "", OPT_DESC_E)
 	flag.BoolVar(&args.rgxpFlag, "regexp", false, OPT_DESC_REGEXP)
-	flag.BoolVar(&args.invFlag, "i", false, OPT_DESC_I)
-	flag.BoolVar(&args.verFlag, "v", false, OPT_DESC_V)
+	flag.BoolVar(&args.invFlag, "inv", false, OPT_DESC_I)
+	flag.BoolVar(&args.verFlag, "ver", false, OPT_DESC_V)
 
 	// parse arguments
 	flag.Parse()
@@ -67,7 +72,7 @@ func (args *CmdArgs) Parse() {
 	args.outEncoding = selectStr(args.outEncoding, encoding, ENC_UTF8)
 	args.listEncoding = selectStr(args.listEncoding, encoding, ENC_UTF8)
 
-	// arguments
+	// othrer arguments
 	args.length = flag.NArg()
 	args.picklist = flag.Args()
 }

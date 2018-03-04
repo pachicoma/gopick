@@ -78,9 +78,8 @@ func main() {
 				fmt.Fprintln(writer, lineText)
 			}
 		}
-		err := scanner.Err()
-		if err != nil {
-			log.Printf("taget file read error: %s", err.Error())
-		}
+	}
+	if err := scanner.Err(); err != nil {
+		log.Printf("taget file read error: %s", err.Error())
 	}
 }
