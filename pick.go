@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -10,11 +11,11 @@ import (
 //********************************************************************
 // MakePickList is function.
 // make simple string pick list.
-func MakePickList(path string, defaltlist []string) ([]string, error) {
+func MakePickList(path string, enc string, defaltlist []string) ([]string, error) {
 	picklist := make([]string, 0, len(defaltlist))
 	if path != "" {
 		var listErr error
-		picklist, listErr = readFileLines(path)
+		picklist, listErr = readNotBlankLines(path, enc)
 		if listErr != nil {
 			return picklist, listErr
 		}
@@ -27,20 +28,20 @@ func MakePickList(path string, defaltlist []string) ([]string, error) {
 
 // MakePickRegexpList is function.
 // make regexp pattern pick list.
-func MakePickRegexpList(picklist []string) ([]*regexp.Regexp, []error) {
+func MakePickRegexpList(picklist []string) ([]*regexp.Regexp, []string) {
 
 	regexplist := make([]*regexp.Regexp, 0, len(picklist))
-	errlist := make([]error, 0, len(picklist))
+	errmsgs := make([]string, 0, len(picklist))
 	for _, pattern := range picklist {
 		re, reErr := regexp.Compile(pattern)
 		if reErr != nil {
-			errlist = append(errlist, reErr)
+			errmsgs = append(errmsgs, fmt.Sprintf("\"%s\" > %s", pattern, reErr.Error()))
 		} else {
 			regexplist = append(regexplist, re)
 		}
 	}
 
-	return regexplist, errlist
+	return regexplist, errmsgs
 }
 
 //********************************************************************
