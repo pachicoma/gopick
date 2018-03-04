@@ -94,6 +94,9 @@ func readNotBlankLines(path string, enc string) ([]string, error) {
 		// add pick list
 		lines = append(lines, line)
 	}
+	if err := scanner.Err(); err != nil {
+		return lines, err
+	}
 
 	return lines, nil
 }

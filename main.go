@@ -33,7 +33,7 @@ func main() {
 	// make pick list
 	picklist, listErr := MakePickList(args.listPath, args.listEncoding, args.picklist)
 	if listErr != nil {
-		log.Fatalln(listErr.Error())
+		log.Fatalln(fmt.Sprintf("makelist file read error: %s", listErr.Error()))
 	}
 	if args.rgxpFlag {
 		// if use regexp pattern mode
@@ -80,7 +80,7 @@ func main() {
 		}
 		err := scanner.Err()
 		if err != nil {
-			log.Printf("scan err: %s", err.Error())
+			log.Printf("taget file read error: %s", err.Error())
 		}
 	}
 }
